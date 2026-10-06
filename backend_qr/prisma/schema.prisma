@@ -1,0 +1,186 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+   url      = env("DATABASE_URL")
+
+}
+
+enum Rol {
+  ADMIN
+  MAESTRO
+  ALUMNO
+}
+
+enum EstadoAsistencia {
+  PRESENTE
+  RETARDO
+  FALTA
+  JUSTIFICADA
+}
+
+model Usuario {
+  id         String   @id @default(uuid())
+  nombre     String
+  correo     String   @unique
+  password   String
+  rol        Rol
+  activo     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  alumno      Alumno?
+  maestro     Maestro?
+  logs        Log[]
+}
+
+model Tutor {
+  id          String   @id @default(uuid())
+  nombre      String
+  telefono    String?
+  correo      String?
+
+  alumnos     Alumno[]
+}
+
+model Carrera {
+  id          String   @id @default(uuid())
+  nombre      String
+  clave       String   @unique
+
+  grupos      Grupo[]
+}
+
+model Grupo {
+  id             String   @id @default(uuid())
+  nombre         String
+  cuatrimestre   Int
+  turno          String
+
+  carreraId      String
+  carrera        Carrera @relation(fields: [carreraId], references: [id])
+
+  alumnos        Alumno[]
+  maestroMateriaGrupo MaestroMateriaGrupo[]
+}
+
+model Alumno {
+  id                  String   @id @default(uuid())
+  matricula           String   @unique
+  nombre              String
+  apellidoPaterno     String
+  apellidoMaterno     String?
+  correo              String?
+  telefono            String?
+  activo              Boolean @default(true)
+
+  grupoId             String
+  grupo               Grupo @relation(fields: [grupoId], references: [id])
+
+  tutorId             String?
+  tutor               Tutor? @relation(fields: [tutorId], references: [id])
+
+  usuarioId           String? @unique
+  usuario             Usuario? @relation(fields: [usuarioId], references: [id])
+
+  asistencias         Asistencia[]
+  incidencias         Incidencia[]
+}
+
+model Maestro {
+  id                  String   @id @default(uuid())
+  numeroEmpleado      String   @unique
+  nombre              String
+  correo              String?
+  telefono            String?
+
+  usuarioId           String? @unique
+  usuario             Usuario? @relation(fields: [usuarioId], references: [id])
+
+  maestroMateriaGrupo MaestroMateriaGrupo[]
+}
+
+model Materia {
+  id                  String   @id @default(uuid())
+  nombre              String
+  clave               String   @unique
+  cuatrimestre        Int
+
+  maestroMateriaGrupo MaestroMateriaGrupo[]
+}
+
+model MaestroMateriaGrupo {
+  id            String @id @default(uuid())
+
+  maestroId     String
+  materiaId     String
+  grupoId       String
+
+  maestro       Maestro @relation(fields: [maestroId], references: [id])
+  materia       Materia @relation(fields: [materiaId], references: [id])
+  grupo         Grupo @relation(fields: [grupoId], references: [id])
+
+  horarios      Horario[]
+  sesionesQR    SesionQR[]
+}
+
+model Horario {
+  id                String   @id @default(uuid())
+  diaSemana         String
+  horaInicio        String
+  horaFin           String
+
+  mmgId             String
+  mmg               MaestroMateriaGrupo @relation(fields: [mmgId], references: [id])
+}
+
+model SesionQR {
+  id                String   @id @default(uuid())
+  tokenQR           String   @unique
+  fecha             DateTime
+  horaGenerada      DateTime @default(now())
+  expiracion        DateTime
+  activa            Boolean @default(true)
+
+  mmgId             String
+  mmg               MaestroMateriaGrupo @relation(fields: [mmgId], references: [id])
+
+  asistencias       Asistencia[]
+}
+
+model Asistencia {
+  id                String   @id @default(uuid())
+
+  alumnoId          String
+  alumno            Alumno @relation(fields: [alumnoId], references: [id])
+
+  sesionQRId        String
+  sesionQR          SesionQR @relation(fields: [sesionQRId], references: [id])
+
+  fechaHora         DateTime @default(now())
+  estado            EstadoAsistencia
+  observaciones     String?
+}
+
+model Incidencia {
+  id                String   @id @default(uuid())
+  tipo              String
+  descripcion       String?
+  fecha             DateTime @default(now())
+
+  alumnoId          String
+  alumno            Alumno @relation(fields: [alumnoId], references: [id])
+}
+
+model Log {
+  id                String   @id @default(uuid())
+  accion            String
+  fecha             DateTime @default(now())
+
+  usuarioId         String
+  usuario           Usuario @relation(fields: [usuarioId], references: [id])
+}
+
+
+
